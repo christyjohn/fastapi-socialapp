@@ -5,6 +5,10 @@ from fastapi.params import Body
 from pydantic import BaseModel
 from random import randrange
 
+import time
+import psycopg
+from psycopg.rows import dict_row
+
 app = FastAPI()
 
 class Post(BaseModel):
@@ -12,6 +16,21 @@ class Post(BaseModel):
     content: str
     published: bool = True
     rating: Optional[int] = None
+
+while True:
+    try:
+        # Connect to an existing database
+        conn = psycopg.connect(host='localhost', dbname='fastapi_socialapp',
+                                user='postgres', password='admin',
+                                row_factory=dict_row)
+        # Open a cursor to perform database operations
+        cursor = conn.cursor()
+        print('Database conection was successful!!!')
+        break
+    except Exception as error:
+        print('Connecting to the database failed.')
+        print("Error: ", error)
+        time.sleep(2)
 
 my_posts = [
     { "title": "title of post 1", "content": "content of post 1", "id": 1},
@@ -34,7 +53,10 @@ def root():
 
 @app.get("/posts")
 def get_posts():
-    return {"data": my_posts}
+    cursor.execute("""SELECT * FROM posts""")
+    posts = cursor.fetchall()
+    print(posts)
+    return {"data": posts}
 
 @app.post("/posts", status_code = status.HTTP_201_CREATED)
 def create_post(post: Post):
